@@ -42,6 +42,11 @@ export function UserDetailsModal({ details }: UserDetailsModalProps) {
             </div>
           </div>
         </div>
+        {details.image && (
+          <div className="mt-4">
+            <img src={details.image} alt="Challan" className="w-full h-auto rounded-lg" />
+          </div>
+        )}
       </CardContent>
     </Card>
   )
