@@ -4,31 +4,31 @@ import type { ChallanDetails } from "../../types"
 // Demo database
 const demoDatabase: ChallanDetails[] = [
   {
-    name: "Rahul Kumar",
+    name: "Rahul Kumar Bkluneder",
     plateNumber: "ABC",
     vehicleType: "Car",
     violation: "Overspeeding",
     fineAmount: 1000,
     date: "2024-02-24",
-    image: "https://xsgames.co/randomusers/avatar.php?g=mal",
+    image: "https://xsgames.co/randomusers/avatar.php?g=male",
   },
   {
-    name: "Priya Singh",
+    name: "Priya Singh Chhutiyankyu",
     plateNumber: "MH02CD5678",
     vehicleType: "Car",
     violation: "Red Light Violation",
     fineAmount: 500,
     date: "2024-02-24",
-    image: "https://xsgames.co/randomusers/avatar.php?g=mal",
+    image: "https://xsgames.co/randomusers/avatar.php?g=female",
   },
   {
-    name: "Amit Patel",
+    name: "Amit Patel Jhaanjhatowala",
     plateNumber: "GJ03EF9012",
     vehicleType: "Bike",
     violation: "No Helmet",
     fineAmount: 300,
     date: "2024-02-24",
-    image: "https://xsgames.co/randomusers/avatar.php?g=mal",
+    image: "https://xsgames.co/randomusers/avatar.php?g=male",
   },
 ]
 
