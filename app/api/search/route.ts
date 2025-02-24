@@ -4,31 +4,31 @@ import type { ChallanDetails } from "../../types"
 // Demo database
 const demoDatabase: ChallanDetails[] = [
   {
-    name: "Rahul Kumar BKL",
+    name: "Rahul Kumar",
     plateNumber: "ABC",
     vehicleType: "Car",
     violation: "Overspeeding",
     fineAmount: 1000,
     date: "2024-02-24",
-    image: "https://xsgames.co/randomusers/avatar.php?g=male",
+    image: "https://xsgames.co/randomusers/avatar.php?g=mal",
   },
   {
-    name: "Priya Singh LAUDIYA",
+    name: "Priya Singh",
     plateNumber: "MH02CD5678",
     vehicleType: "Car",
     violation: "Red Light Violation",
     fineAmount: 500,
     date: "2024-02-24",
-    image: "https://xsgames.co/randomusers/avatar.php?g=female",
+    image: "https://xsgames.co/randomusers/avatar.php?g=mal",
   },
   {
-    name: "Amit Patel MUTTHIWALA",
+    name: "Amit Patel",
     plateNumber: "GJ03EF9012",
     vehicleType: "Bike",
     violation: "No Helmet",
     fineAmount: 300,
     date: "2024-02-24",
-    image: "https://xsgames.co/randomusers/avatar.php?g=male",
+    image: "https://xsgames.co/randomusers/avatar.php?g=mal",
   },
 ]
 
@@ -51,3 +51,4 @@ export async function GET(request: Request) {
 
   return NextResponse.json(challanDetails)
 }
+

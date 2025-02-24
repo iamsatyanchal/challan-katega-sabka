@@ -7,3 +7,4 @@ export interface ChallanDetails {
   date: string
   image?: string
 }
+

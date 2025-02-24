@@ -51,3 +51,4 @@ export function UserDetailsModal({ details }: UserDetailsModalProps) {
     </Card>
   )
 }
+
