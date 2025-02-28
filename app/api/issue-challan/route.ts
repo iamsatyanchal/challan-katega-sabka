@@ -1,6 +1,6 @@
 // api/issue-challan/route.ts
 import { NextResponse } from "next/server"
-import { addChallan } from "@/services/db-service"
+import { addChallan } from "../../services/db-service"
 import type { ChallanDetails } from "@/types"
 
 export async function POST(request: Request) {
