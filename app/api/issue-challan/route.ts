@@ -2,32 +2,39 @@
 import { NextResponse } from "next/server"
 import type { ChallanDetails } from "../../types"
 
-// In a real app, this would connect to a database
+// Mock database - in a real app, this would be persisted to a database
+const challans: ChallanDetails[] = []
+
 export async function POST(request: Request) {
   try {
     const challanData = await request.json()
     
     // Validate required fields
-    const requiredFields = ['plateNumber', 'name', 'vehicleType', 'violation', 'fineAmount']
-    for (const field of requiredFields) {
-      if (!challanData[field]) {
-        return NextResponse.json({ error: `${field} is required` }, { status: 400 })
-      }
+    if (!challanData.plateNumber || !challanData.name || !challanData.violation || !challanData.fineAmount) {
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 }
+      )
     }
     
-    // In a real app, this would save to a database
-    // For demo, we'll just return success
+    // Create new challan with unpaid status
+    const newChallan: ChallanDetails = {
+      ...challanData,
+      status: "Unpaid"
+    }
     
-    // Add default status
-    challanData.status = "Unpaid"
+    // Save to database (mock)
+    challans.push(newChallan)
     
-    return NextResponse.json({ 
-      success: true,
-      message: "Challan issued successfully",
-      data: challanData
-    })
+    return NextResponse.json(
+      { success: true, message: "Challan issued successfully", challanId: challans.length },
+      { status: 201 }
+    )
   } catch (error) {
-    console.error("Error issuing challan:", error)
-    return NextResponse.json({ error: "Failed to issue challan" }, { status: 500 })
+    console.error("Error processing challan:", error)
+    return NextResponse.json(
+      { error: "Failed to process challan" },
+      { status: 500 }
+    )
   }
 }
