@@ -1,21 +1,26 @@
+// page.tsx
 "use client"
 
 import { useState, useRef } from "react"
-import { Camera, Search, Upload } from "lucide-react"
+import { Camera, Search, Upload, History, FileText } from "lucide-react"
 import Webcam from "react-webcam"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { UserDetailsModal } from "./user-details-modal"
+import { NewChallanForm } from "./new-challan-form"
+import { ChallanHistory } from "./challan-history"
 import type { ChallanDetails } from "./types"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default function ChallanSystem() {
-  const [mode, setMode] = useState<"camera" | "search" | "upload">("search")
+  const [mode, setMode] = useState<"camera" | "search" | "upload" | "issue" | "history">("search")
   const [searchPlate, setSearchPlate] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
   const [challanDetails, setChallanDetails] = useState<ChallanDetails | null>(null)
+  const [historyData, setHistoryData] = useState<ChallanDetails[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [capturedImage, setCapturedImage] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const webcamRef = useRef<Webcam>(null)
 
@@ -38,9 +43,30 @@ export default function ChallanSystem() {
     setIsProcessing(false)
   }
 
+  const handleFetchHistory = async (plateNumber: string) => {
+    setIsProcessing(true)
+    setError(null)
+    try {
+      const response = await fetch(`/api/history?plate=${plateNumber}`)
+      const data = await response.json()
+
+      if (response.ok) {
+        setHistoryData(data)
+      } else {
+        setError(data.error || "No challan history found")
+      }
+    } catch (error) {
+      setError("Error fetching history")
+      console.error("Error fetching history:", error)
+    }
+    setIsProcessing(false)
+  }
+
   const processImage = async (imageData: string) => {
     setIsProcessing(true)
     setError(null)
+    setCapturedImage(imageData)
+    
     try {
       // First, send the image to our OCR API
       const ocrResponse = await fetch("/api/ocr", {
@@ -59,16 +85,23 @@ export default function ChallanSystem() {
       }
 
       // If we successfully detected text, search for the plate number
-      if (ocrData.result[0].text) {
-        await handleSearch(ocrData.result[0].text)
+      if (ocrData.result && ocrData.result[0] && ocrData.result[0].text) {
+        if (mode === "camera" || mode === "upload") {
+          await handleSearch(ocrData.result[0].text)
+        } else if (mode === "issue") {
+          // Switch to issue tab with the detected plate number
+          setMode("issue")
+          return ocrData.result[0].text
+        }
       } else {
-        setError("No license plate detected for:" + ocrData.result[0].text)
+        setError("No license plate detected in image")
       }
     } catch (error) {
       setError("Error processing image")
       console.error("Error processing image:", error)
     }
     setIsProcessing(false)
+    return null
   }
 
   const handleCapture = async () => {
@@ -100,34 +133,42 @@ export default function ChallanSystem() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-8">
+    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold mb-4">Traffic Challan System</h1>
           <p className="text-gray-400">
-            Search or capture vehicle number plates to check challan details
+            Search, issue or view history of traffic challans
           </p>
         </div>
 
         <Tabs defaultValue="search" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-8">
+          <TabsList className="grid w-full grid-cols-3 md:grid-cols-5 mb-8">
             <TabsTrigger value="search" onClick={() => setMode("search")}>
               <Search className="mr-2 h-4 w-4" />
-              Search
+              <span className="hidden md:inline">Search</span>
             </TabsTrigger>
             <TabsTrigger value="camera" onClick={() => setMode("camera")}>
               <Camera className="mr-2 h-4 w-4" />
-              Camera
+              <span className="hidden md:inline">Camera</span>
             </TabsTrigger>
             <TabsTrigger value="upload" onClick={() => setMode("upload")}>
               <Upload className="mr-2 h-4 w-4" />
-              Upload
+              <span className="hidden md:inline">Upload</span>
+            </TabsTrigger>
+            <TabsTrigger value="issue" onClick={() => setMode("issue")}>
+              <FileText className="mr-2 h-4 w-4" />
+              <span className="hidden md:inline">Issue Challan</span>
+            </TabsTrigger>
+            <TabsTrigger value="history" onClick={() => setMode("history")}>
+              <History className="mr-2 h-4 w-4" />
+              <span className="hidden md:inline">History</span>
             </TabsTrigger>
           </TabsList>
 
-          <div className="bg-gray-800 rounded-lg p-6 mb-8">
+          <div className="bg-gray-800 rounded-lg p-4 md:p-6 mb-8">
             <TabsContent value="search">
-              <div className="flex gap-4">
+              <div className="flex flex-col md:flex-row gap-4">
                 <Input
                   type="text"
                   placeholder="Enter vehicle number plate..."
@@ -184,6 +225,27 @@ export default function ChallanSystem() {
                   <span className="text-sm text-gray-400">Supports: JPG, PNG</span>
                 </Button>
               </div>
+            </TabsContent>
+
+            <TabsContent value="issue">
+              <NewChallanForm capturedImage={capturedImage} />
+            </TabsContent>
+
+            <TabsContent value="history">
+              <div className="flex flex-col md:flex-row gap-4 mb-6">
+                <Input
+                  type="text"
+                  placeholder="Enter vehicle number plate..."
+                  value={searchPlate}
+                  onChange={(e) => setSearchPlate(e.target.value)}
+                  className="bg-gray-700 text-white border-gray-600"
+                />
+                <Button onClick={() => handleFetchHistory(searchPlate)} disabled={isProcessing}>
+                  View History
+                </Button>
+              </div>
+              
+              {historyData.length > 0 && <ChallanHistory challans={historyData} />}
             </TabsContent>
           </div>
         </Tabs>
