@@ -1,6 +1,6 @@
 // api/pay-challan/route.ts
 import { NextResponse } from "next/server"
-import { updateChallanStatus } from "@/services/db-service"
+import { updateChallanStatus } from "../../services/db-service"
 
 export async function POST(request: Request) {
   try {
