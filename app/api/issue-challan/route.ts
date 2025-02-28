@@ -1,9 +1,7 @@
 // api/issue-challan/route.ts
 import { NextResponse } from "next/server"
-import type { ChallanDetails } from "../../types"
-
-// Mock database - in a real app, this would be persisted to a database
-const challans: ChallanDetails[] = []
+import { addChallan } from "@/services/db-service"
+import type { ChallanDetails } from "@/types"
 
 export async function POST(request: Request) {
   try {
@@ -17,17 +15,11 @@ export async function POST(request: Request) {
       )
     }
     
-    // Create new challan with unpaid status
-    const newChallan: ChallanDetails = {
-      ...challanData,
-      status: "Unpaid"
-    }
-    
-    // Save to database (mock)
-    challans.push(newChallan)
+    // Add challan to database
+    const newChallan = await addChallan(challanData)
     
     return NextResponse.json(
-      { success: true, message: "Challan issued successfully", challanId: challans.length },
+      { success: true, message: "Challan issued successfully", challan: newChallan },
       { status: 201 }
     )
   } catch (error) {
