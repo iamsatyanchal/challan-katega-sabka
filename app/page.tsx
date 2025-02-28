@@ -12,7 +12,7 @@ import { NewChallanForm } from "./new-challan-form"
 import { ChallanHistory } from "./challan-history"
 import type { ChallanDetails } from "./types"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { getAllChallans, getChallansByPlate } from "@/services/db-service"
+import { getAllChallans, getChallansByPlate } from "./services/db-service"
 
 export default function ChallanSystem() {
   const [mode, setMode] = useState<"camera" | "search" | "upload" | "issue" | "history">("search")
