@@ -5,7 +5,7 @@ import type { ChallanDetails } from '../types'
 // Using JSONBin.io as our storage service
 const JSON_BIN_URL = "https://api.jsonbin.io/v3/b"
 const JSON_BIN_SECRET = "$2b$10$TURjBht56uajdznniz5hReUlkI5R1CxD1rOOatKvrffurL6Jf3gkS" // Set this in your .env
-const BIN_ID = "67c1ca0ae41b4d34e49e5c94 " // Set this in your .env or create one
+const BIN_ID = "67c1ca0ae41b4d34e49e5c94" // Set this in your .env or create one
 
 // Initial data with sample records
 const initialData: ChallanDetails[] = [
