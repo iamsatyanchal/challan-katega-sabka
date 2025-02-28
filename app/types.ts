@@ -6,5 +6,7 @@ export interface ChallanDetails {
   fineAmount: number
   date: string
   image?: string
+  location?: string
+  remarks?: string
+  status?: "Paid" | "Unpaid"
 }
-
