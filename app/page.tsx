@@ -1,7 +1,7 @@
 // page.tsx
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Camera, Search, Upload, History, FileText } from "lucide-react"
 import Webcam from "react-webcam"
 
@@ -12,6 +12,7 @@ import { NewChallanForm } from "./new-challan-form"
 import { ChallanHistory } from "./challan-history"
 import type { ChallanDetails } from "./types"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { getAllChallans, getChallansByPlate } from "@/services/db-service"
 
 export default function ChallanSystem() {
   const [mode, setMode] = useState<"camera" | "search" | "upload" | "issue" | "history">("search")
@@ -24,17 +25,51 @@ export default function ChallanSystem() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const webcamRef = useRef<Webcam>(null)
 
+  // Fetch initial data
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      try {
+        await getAllChallans()
+      } catch (error) {
+        console.error("Failed to initialize data:", error)
+      }
+    }
+    
+    fetchInitialData()
+  }, [])
+
   const handleSearch = async (plateNumber: string) => {
+    if (!plateNumber.trim()) {
+      setError("Please enter a vehicle number plate")
+      return
+    }
+    
     setIsProcessing(true)
     setError(null)
     try {
-      const response = await fetch(`/api/search?plate=${plateNumber}`)
-      const data = await response.json()
-
-      if (response.ok) {
-        setChallanDetails(data)
+      const challans = await getChallansByPlate(plateNumber)
+      
+      if (challans.length > 0) {
+        // Find the most recent unpaid challan
+        const unpaidChallans = challans.filter(c => c.status === "Unpaid")
+        
+        if (unpaidChallans.length > 0) {
+          // Sort by date, most recent first
+          const sortedUnpaid = unpaidChallans.sort(
+            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+          )
+          
+          setChallanDetails(sortedUnpaid[0])
+        } else {
+          // If no unpaid challans, show the most recent one
+          const sortedChallans = challans.sort(
+            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+          )
+          
+          setChallanDetails(sortedChallans[0])
+        }
       } else {
-        setError(data.error || "No challan found")
+        setError("No challan found for this vehicle")
       }
     } catch (error) {
       setError("Error fetching data")
@@ -44,22 +79,50 @@ export default function ChallanSystem() {
   }
 
   const handleFetchHistory = async (plateNumber: string) => {
+    if (!plateNumber.trim()) {
+      setError("Please enter a vehicle number plate")
+      return
+    }
+    
     setIsProcessing(true)
     setError(null)
     try {
-      const response = await fetch(`/api/history?plate=${plateNumber}`)
-      const data = await response.json()
-
-      if (response.ok) {
-        setHistoryData(data)
+      const challans = await getChallansByPlate(plateNumber)
+      
+      if (challans.length > 0) {
+        setHistoryData(challans)
       } else {
-        setError(data.error || "No challan history found")
+        setHistoryData([])
+        setError("No challan history found for this vehicle")
       }
     } catch (error) {
       setError("Error fetching history")
       console.error("Error fetching history:", error)
     }
     setIsProcessing(false)
+  }
+
+  const handlePaymentComplete = async (challanId: string) => {
+    try {
+      const response = await fetch("/api/pay-challan", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ challanId }),
+      })
+
+      if (response.ok) {
+        // Refresh the history data
+        if (searchPlate) {
+          await handleFetchHistory(searchPlate)
+        }
+      } else {
+        console.error("Payment update failed")
+      }
+    } catch (error) {
+      console.error("Payment update error:", error)
+    }
   }
 
   const processImage = async (imageData: string) => {
@@ -132,133 +195,174 @@ export default function ChallanSystem() {
     reader.readAsDataURL(file)
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4 md:p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-4">Traffic Challan System</h1>
-          <p className="text-gray-400">
-            Search, issue or view history of traffic challans
-          </p>
-        </div>
+  const handleChallanCreated = async () => {
+    // Reset the captured image
+    setCapturedImage(null)
+    // If we have a search plate, refresh the history
+    if (searchPlate) {
+      await handleFetchHistory(searchPlate)
+    }
+  }
 
-        <Tabs defaultValue="search" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 md:grid-cols-5 mb-8">
-            <TabsTrigger value="search" onClick={() => setMode("search")}>
+  return (
+    <div className="container mx-auto p-4 max-w-4xl">
+      <header className="mb-8">
+        <h1 className="text-2xl font-bold">Traffic Challan Management System</h1>
+        <p className="text-gray-400">Search, view, and pay traffic challans</p>
+      </header>
+
+      <div className="mb-6">
+        <Tabs defaultValue="search" value={mode} onValueChange={(val: any) => setMode(val)}>
+          <TabsList className="mb-4">
+            <TabsTrigger value="search" className="flex items-center">
               <Search className="mr-2 h-4 w-4" />
-              <span className="hidden md:inline">Search</span>
+              Search
             </TabsTrigger>
-            <TabsTrigger value="camera" onClick={() => setMode("camera")}>
+            <TabsTrigger value="camera" className="flex items-center">
               <Camera className="mr-2 h-4 w-4" />
-              <span className="hidden md:inline">Camera</span>
+              Camera
             </TabsTrigger>
-            <TabsTrigger value="upload" onClick={() => setMode("upload")}>
+            <TabsTrigger value="upload" className="flex items-center">
               <Upload className="mr-2 h-4 w-4" />
-              <span className="hidden md:inline">Upload</span>
+              Upload
             </TabsTrigger>
-            <TabsTrigger value="issue" onClick={() => setMode("issue")}>
+            <TabsTrigger value="issue" className="flex items-center">
               <FileText className="mr-2 h-4 w-4" />
-              <span className="hidden md:inline">Issue Challan</span>
+              Issue Challan
             </TabsTrigger>
-            <TabsTrigger value="history" onClick={() => setMode("history")}>
+            <TabsTrigger value="history" className="flex items-center">
               <History className="mr-2 h-4 w-4" />
-              <span className="hidden md:inline">History</span>
+              History
             </TabsTrigger>
           </TabsList>
 
-          <div className="bg-gray-800 rounded-lg p-4 md:p-6 mb-8">
-            <TabsContent value="search">
-              <div className="flex flex-col md:flex-row gap-4">
+          <TabsContent value="search">
+            <div className="mb-4">
+              <div className="flex gap-2">
                 <Input
                   type="text"
-                  placeholder="Enter vehicle number plate..."
+                  placeholder="Enter vehicle number plate"
                   value={searchPlate}
                   onChange={(e) => setSearchPlate(e.target.value)}
-                  className="bg-gray-700 text-white border-gray-600"
+                  className="bg-gray-800 border-gray-700"
                 />
-                <Button onClick={() => handleSearch(searchPlate)} disabled={isProcessing}>
-                  Search
-                </Button>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="camera">
-              <div className="relative">
-                <Webcam
-                  audio={false}
-                  ref={webcamRef}
-                  screenshotFormat="image/jpeg"
-                  className="w-full rounded-lg"
-                  videoConstraints={{
-                    width: 1280,
-                    height: 720,
-                    facingMode: "environment",
-                  }}
-                />
-                <Button
-                  className="absolute bottom-4 right-4"
-                  onClick={handleCapture}
-                  disabled={isProcessing}
+                <Button 
+                  onClick={() => handleSearch(searchPlate)} 
+                  disabled={isProcessing || !searchPlate}
                 >
-                  Capture Plate
+                  {isProcessing ? 'Searching...' : 'Search'}
                 </Button>
               </div>
-            </TabsContent>
+              {error && <p className="text-red-500 mt-2">{error}</p>}
+            </div>
 
-            <TabsContent value="upload">
-              <div className="text-center">
+            {challanDetails && (
+              <UserDetailsModal details={challanDetails} />
+            )}
+          </TabsContent>
+
+          <TabsContent value="camera">
+            <div className="space-y-4">
+              {!capturedImage ? (
+                <>
+                  <div className="rounded-lg overflow-hidden border border-gray-700">
+                    <Webcam
+                      ref={webcamRef}
+                      screenshotFormat="image/jpeg"
+                      videoConstraints={{
+                        facingMode: "environment"
+                      }}
+                      className="w-full"
+                    />
+                  </div>
+                  <Button onClick={handleCapture} disabled={isProcessing}>
+                    {isProcessing ? 'Processing...' : 'Capture Plate'}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <div className="rounded-lg overflow-hidden border border-gray-700">
+                    <img src={capturedImage} alt="Captured" className="w-full" />
+                  </div>
+                  <Button onClick={() => setCapturedImage(null)}>Capture Again</Button>
+                </>
+              )}
+              {error && <p className="text-red-500">{error}</p>}
+              {challanDetails && (
+                <UserDetailsModal details={challanDetails} />
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="upload">
+            <div className="space-y-4">
+              <div 
+                className="border-2 border-dashed border-gray-700 rounded-lg p-8 text-center cursor-pointer hover:border-gray-500 transition-colors"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Upload className="mx-auto h-12 w-12 text-gray-400 mb-2" />
+                <p>Click to upload or drag and drop</p>
+                <p className="text-sm text-gray-400">PNG, JPG or JPEG</p>
                 <input
                   type="file"
-                  accept="image/*"
+                  ref={fileInputRef}
                   onChange={handleFileUpload}
                   className="hidden"
-                  ref={fileInputRef}
+                  accept="image/*"
                 />
-                <Button
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isProcessing}
-                  variant="secondary"
-                  className="w-full h-32 flex flex-col items-center justify-center gap-2"
-                >
-                  <Upload className="h-8 w-8" />
-                  <span>Click to upload image</span>
-                  <span className="text-sm text-gray-400">Supports: JPG, PNG</span>
-                </Button>
               </div>
-            </TabsContent>
+              
+              {capturedImage && (
+                <div className="rounded-lg overflow-hidden border border-gray-700 mt-4">
+                  <img src={capturedImage} alt="Uploaded" className="w-full" />
+                </div>
+              )}
+              
+              {error && <p className="text-red-500">{error}</p>}
+              
+              {challanDetails && (
+                <UserDetailsModal details={challanDetails} />
+              )}
+            </div>
+          </TabsContent>
 
-            <TabsContent value="issue">
-              <NewChallanForm capturedImage={capturedImage} />
-            </TabsContent>
+          <TabsContent value="issue">
+            <NewChallanForm 
+              initialPlate={searchPlate} 
+              capturedImage={capturedImage}
+              onChallanCreated={handleChallanCreated}
+            />
+          </TabsContent>
 
-            <TabsContent value="history">
-              <div className="flex flex-col md:flex-row gap-4 mb-6">
+          <TabsContent value="history">
+            <div className="mb-4">
+              <div className="flex gap-2">
                 <Input
                   type="text"
-                  placeholder="Enter vehicle number plate..."
+                  placeholder="Enter vehicle number plate"
                   value={searchPlate}
                   onChange={(e) => setSearchPlate(e.target.value)}
-                  className="bg-gray-700 text-white border-gray-600"
+                  className="bg-gray-800 border-gray-700"
                 />
-                <Button onClick={() => handleFetchHistory(searchPlate)} disabled={isProcessing}>
-                  View History
+                <Button 
+                  onClick={() => handleFetchHistory(searchPlate)} 
+                  disabled={isProcessing || !searchPlate}
+                >
+                  {isProcessing ? 'Fetching...' : 'Fetch History'}
                 </Button>
               </div>
               
-              {historyData.length > 0 && <ChallanHistory challans={historyData} />}
-            </TabsContent>
-          </div>
+              {error && <p className="text-red-500 mt-2">{error}</p>}
+            </div>
+
+            {historyData.length > 0 && (
+              <ChallanHistory 
+                challans={historyData} 
+                onPaymentComplete={handlePaymentComplete}
+              />
+            )}
+          </TabsContent>
         </Tabs>
-
-        {isProcessing && (
-          <div className="text-center text-gray-400 my-4">
-            Processing... Please wait.
-          </div>
-        )}
-
-        {error && <div className="text-center text-red-400 my-4">{error}</div>}
-
-        {challanDetails && <UserDetailsModal details={challanDetails} />}
       </div>
     </div>
   )
