@@ -1,4 +1,5 @@
 export interface ChallanDetails {
+  id?: string
   name: string
   plateNumber: string
   vehicleType: string
