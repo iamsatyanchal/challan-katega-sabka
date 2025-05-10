@@ -4,7 +4,7 @@
 import { useState, useRef, useEffect } from "react"
 import { Camera, Search, Upload, History, FileText } from "lucide-react"
 import Webcam from "react-webcam"
-
+import Link from 'next/link';
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { UserDetailsModal } from "./user-details-modal"
@@ -205,11 +205,15 @@ export default function ChallanSystem() {
   }
 
   return (
-    <div className="container mx-auto p-4 max-w-4xl">
-      <header className="mb-8">
-        <h1 className="text-2xl font-bold">Traffic Challan Management System</h1>
-        <p className="text-gray-400">Search, view, and pay traffic challans</p>
-      </header>
+    <div className= "container mx-auto p-4 max-w-4xl" >
+    <header className="mb-8" >
+      <h1 className="text-2xl font-bold" > Traffic Challan Management System < /h1>
+        < p className = "text-gray-400" > Search, view, and pay traffic challans < /p>
+  {/* Optional: Add a link to the admin page */ }
+  <div className="mt-2" >
+    <Link href="/admin" className = "text-blue-500 hover:underline" > Go to Admin Dashboard < /Link>
+      < /div>
+      < /header>
 
       <div className="mb-6">
         <Tabs defaultValue="search" value={mode} onValueChange={(val: any) => setMode(val)}>
