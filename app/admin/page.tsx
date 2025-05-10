@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card"; // Import Card compone
 // This is a Server Component, ideal for data fetching
 async function fetchAllChallans() {
   // Call your new API route
-  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/all-challans`, {
+  const res = await fetch(`/api/all-challans`, {
     cache: 'no-store' // Ensure data is always fresh
   });
 
